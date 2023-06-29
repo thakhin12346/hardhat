@@ -1,5 +1,11 @@
 # hardhat
 
+## 2.16.2
+
+### Patch Changes
+
+- c0aa10c2d: Added support for solc 0.8.19 and 0.8.20
+
 ## 2.16.1
 
 ### Patch Changes
