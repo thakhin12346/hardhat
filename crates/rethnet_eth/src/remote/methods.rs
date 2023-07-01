@@ -67,7 +67,7 @@ pub enum MethodInvocation {
     GasPrice(),
     /// eth_getBalance
     #[serde(rename = "eth_getBalance")]
-    GetBalance(Address, BlockSpec),
+    GetBalance(Address, Option<BlockSpec>),
     /// eth_getBlockByNumber
     #[serde(rename = "eth_getBlockByNumber")]
     GetBlockByNumber(

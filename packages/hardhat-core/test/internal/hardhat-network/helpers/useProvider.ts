@@ -1,6 +1,11 @@
+import { spawn } from "node:child_process";
+
+import type { Client as ClientT } from "undici";
+
 import { HardhatNetworkChainsConfig } from "../../../../src/types/config";
 import { defaultHardhatNetworkParams } from "../../../../src/internal/core/config/default-config";
 import { BackwardsCompatibilityProviderAdapter } from "../../../../src/internal/core/providers/backwards-compatibility";
+import { HttpProvider } from "../../../../src/internal/core/providers/http";
 import { JsonRpcServer } from "../../../../src/internal/hardhat-network/jsonrpc/server";
 import {
   ForkConfig,
@@ -8,6 +13,7 @@ import {
 } from "../../../../src/internal/hardhat-network/provider/node-types";
 import { HardhatNetworkProvider } from "../../../../src/internal/hardhat-network/provider/provider";
 import {
+  EIP1193Provider,
   EthereumProvider,
   HardhatNetworkMempoolConfig,
   HardhatNetworkMiningConfig,
@@ -24,6 +30,7 @@ import {
   DEFAULT_NETWORK_ID,
   DEFAULT_MEMPOOL_CONFIG,
   DEFAULT_USE_JSON_RPC,
+  DEFAULT_USE_RETHNET_CLI,
 } from "./providers";
 
 declare module "mocha" {
@@ -38,6 +45,7 @@ declare module "mocha" {
 
 export interface UseProviderOptions {
   useJsonRpc?: boolean;
+  useRethnetCli?: boolean;
   loggerEnabled?: boolean;
   forkConfig?: ForkConfig;
   mining?: HardhatNetworkMiningConfig;
@@ -55,8 +63,26 @@ export interface UseProviderOptions {
   forkBlockNumber?: number;
 }
 
+function getHttpClientProvider(url: string, name = "rethnet"): EIP1193Provider {
+  const { Client } = require("undici") as { Client: typeof ClientT };
+
+  const dispatcher = new Client(url, {
+    keepAliveTimeout: 10,
+    keepAliveMaxTimeout: 10,
+  });
+
+  return new HttpProvider(
+    url,
+    name,
+    {},
+    20000,
+    dispatcher
+  );
+};
+
 export function useProvider({
   useJsonRpc = DEFAULT_USE_JSON_RPC,
+  useRethnetCli = DEFAULT_USE_RETHNET_CLI,
   loggerEnabled = true,
   forkConfig,
   mining = DEFAULT_MINING_CONFIG,
@@ -115,6 +141,31 @@ export function useProvider({
         this.server.getProvider()
       );
     }
+
+    if (useRethnetCli) {
+      console.log("spawning");
+      this.rethnetProcess = spawn("rethnet", ["node"]);
+      await new Promise(resolve => setTimeout(resolve, 250));
+      this.rethnetProcess.stdout.on("data", (data: any) => {
+        console.log(`rethnet subprocess ${this.rethnetProcess.pid}: ${data}`);
+      });
+      this.rethnetProcess.on("error", (err: Error) => {
+        /* what's the best way to handle errors? this way doesn't seem perfect,
+         * because it seems to induce a "double error": done() called multiple
+         * times in hook <Eth module Rethnet provider "before each" hook:
+         * Initialize provider in "Rethnet provider"> of file
+         * /home/gene/dev/nomiclabs/rethnet/packages/hardhat-core/test/internal/hardhat-network/provider/modules/eth/methods/getBalance.ts;
+         * in addition, done() received error: Error: Rethnet executable not found */
+        if (err.message.includes("ENOENT")) {
+          throw new Error("Rethnet executable not found");
+        } else {
+          throw new Error(`Rethnet subprocess error: ${err}`);
+        }
+      });
+      this.provider = new BackwardsCompatibilityProviderAdapter(
+        getHttpClientProvider("http://127.0.0.1:8545")
+      );
+    }
   });
 
   afterEach("Remove provider", async function () {
@@ -139,6 +190,10 @@ export function useProvider({
 
       delete this.server;
       delete this.serverInfo;
+    }
+
+    if (this.rethnetProcess !== undefined) {
+      this.rethnetProcess.kill();
     }
   });
 }

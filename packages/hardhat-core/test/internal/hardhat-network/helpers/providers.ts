@@ -17,6 +17,7 @@ export const DEFAULT_CHAIN_ID = 123;
 export const DEFAULT_NETWORK_ID = 234;
 export const DEFAULT_BLOCK_GAS_LIMIT = 6000000n;
 export const DEFAULT_USE_JSON_RPC = false;
+export const DEFAULT_USE_RETHNET_CLI = false;
 export const DEFAULT_ALLOW_UNLIMITED_CONTRACT_SIZE = false;
 
 export const DEFAULT_MEMPOOL_CONFIG: HardhatNetworkMempoolConfig = {
@@ -62,23 +63,36 @@ export const DEFAULT_ACCOUNTS_BALANCES = DEFAULT_ACCOUNTS.map(
 
 export const PROVIDERS = [
   {
-    name: "Hardhat Network",
+    name: "Rethnet",
     isFork: false,
     isJsonRpc: false,
+    isRethnetCli: true,
     networkId: DEFAULT_NETWORK_ID,
     chainId: DEFAULT_CHAIN_ID,
     useProvider: (options: UseProviderOptions = {}) => {
-      useProvider({ useJsonRpc: false, loggerEnabled: true, ...options });
+      useProvider({ useJsonRpc: true, useRethnetCli: true, loggerEnabled: true, ...options });
+    },
+  },
+  {
+    name: "Hardhat Network",
+    isFork: false,
+    isJsonRpc: false,
+    isRethnetCli: false,
+    networkId: DEFAULT_NETWORK_ID,
+    chainId: DEFAULT_CHAIN_ID,
+    useProvider: (options: UseProviderOptions = {}) => {
+      useProvider({ useJsonRpc: false, useRethnetCli: false, loggerEnabled: true, ...options });
     },
   },
   {
     name: "JSON-RPC",
     isFork: false,
     isJsonRpc: true,
+    isRethnetCli: false,
     networkId: DEFAULT_NETWORK_ID,
     chainId: DEFAULT_CHAIN_ID,
     useProvider: (options: UseProviderOptions = {}) => {
-      useProvider({ useJsonRpc: true, loggerEnabled: true, ...options });
+      useProvider({ useJsonRpc: true, useRethnetCli: false, loggerEnabled: true, ...options });
     },
   },
 ];
@@ -88,9 +102,11 @@ export const INTERVAL_MINING_PROVIDERS = [
     name: "Hardhat Network",
     isFork: false,
     isJsonRpc: false,
+    isRethnetCli: false,
     useProvider: (options: UseProviderOptions = {}) => {
       useProvider({
         useJsonRpc: false,
+        useRethnetCli: false,
         loggerEnabled: true,
         mining: {
           auto: false,
@@ -105,9 +121,11 @@ export const INTERVAL_MINING_PROVIDERS = [
     name: "JSON-RPC",
     isFork: false,
     isJsonRpc: true,
+    isRethnetCli: false,
     useProvider: (options: UseProviderOptions = {}) => {
       useProvider({
         useJsonRpc: true,
+        useRethnetCli: false,
         loggerEnabled: true,
         mining: {
           auto: false,
@@ -133,11 +151,13 @@ if (ALCHEMY_URL !== undefined) {
     name: "Alchemy Forked",
     isFork: true,
     isJsonRpc: false,
+    isRethnetCli: false,
     networkId: DEFAULT_NETWORK_ID,
     chainId: DEFAULT_CHAIN_ID,
     useProvider: (options: UseProviderOptions = {}) => {
       useProvider({
         useJsonRpc: false,
+        useRethnetCli: false,
         loggerEnabled: true,
         forkConfig: { jsonRpcUrl: url, blockNumber: options.forkBlockNumber },
         ...options,
@@ -149,9 +169,11 @@ if (ALCHEMY_URL !== undefined) {
     name: "Alchemy Forked",
     isFork: true,
     isJsonRpc: false,
+    isRethnetCli: false,
     useProvider: (options: UseProviderOptions = {}) => {
       useProvider({
         useJsonRpc: false,
+        useRethnetCli: false,
         loggerEnabled: true,
         forkConfig: { jsonRpcUrl: url, blockNumber: options.forkBlockNumber },
         mining: {
@@ -170,6 +192,7 @@ if (ALCHEMY_URL !== undefined) {
     useProvider: (options: UseProviderOptions = {}) => {
       useProvider({
         useJsonRpc: false,
+        useRethnetCli: false,
         loggerEnabled: true,
         forkConfig: { jsonRpcUrl: url, blockNumber: options.forkBlockNumber },
         ...options,
@@ -187,6 +210,7 @@ if (INFURA_URL !== undefined) {
     useProvider: (options: UseProviderOptions = {}) => {
       useProvider({
         useJsonRpc: false,
+        useRethnetCli: false,
         loggerEnabled: true,
         forkConfig: { jsonRpcUrl: url, blockNumber: options.forkBlockNumber },
         ...options,

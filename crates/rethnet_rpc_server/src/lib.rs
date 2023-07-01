@@ -473,14 +473,17 @@ async fn router(state: StateType) -> Router {
             "/",
             axum::routing::post(
                 |State(state): State<StateType>, payload: Json<serde_json::Value>| async move {
+                    event!(Level::INFO, "payload: {}", payload.clone().0);
                     let requests: Vec<RpcRequest<MethodInvocation>> =
-                        match serde_json::from_value(payload.clone().0) {
+                        match serde_json::from_value::<RpcRequest<MethodInvocation>>(payload.clone().0) {
                             Ok(request) => vec![request],
-                            Err(_) => match serde_json::from_value(payload.clone().0) {
+                            Err(e) => {
+                                event!(Level::INFO, "error trying to deserialize as a single request: {e}");
+                                match serde_json::from_value::<Vec<RpcRequest<MethodInvocation>>>(payload.clone().0) {
                                 Ok(requests) => requests,
-                                Err(_) => {
+                                Err(e) => {
                                     let msg =
-                                        format!("unsupported JSON body '{:?}'", payload.clone().0);
+                                        format!("unsupported JSON body '{:?}': {e}", payload.clone().0);
                                     event!(Level::INFO, "{}", &msg);
                                     return (
                                         StatusCode::INTERNAL_SERVER_ERROR,
@@ -490,7 +493,7 @@ async fn router(state: StateType) -> Router {
                                         ),
                                     );
                                 }
-                            },
+                            }},
                         };
 
                     let responses = {
